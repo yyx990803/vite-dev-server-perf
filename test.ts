@@ -1,22 +1,18 @@
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
 import { launch } from "puppeteer";
-import { ChildProcess } from "child_process";
+import { genCode } from "./codegen.js";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const runTest = async (
-  name: string,
-  getProcess: () => ChildProcess,
-  port: number,
-) => {
+const runTest = async (width: number, depth: number) => {
   const runs: number[] = [];
   for (let i = 0; i < 5; i++) {
-    const process = getProcess();
+    genCode(width, depth);
+    const process = spawn("vite");
     const page = await browser.newPage();
     await wait(500);
     const start = performance.now();
-    await page.goto(`http://localhost:${port}`);
+    await page.goto(`http://localhost:5173`);
     await page.waitForSelector("#app", { timeout: 10_000 });
     runs.push(Math.round(performance.now() - start));
     await page.close();
@@ -24,24 +20,24 @@ const runTest = async (
     await wait(500);
   }
   console.log(
-    `${name}: ${runs.slice().sort((a, z) => a - z)[2]}ms (runs: [${runs}])`,
+    `${width * depth} TS modules (${width}x${depth}) loaded in: ${
+      runs.slice().sort((a, z) => a - z)[2]
+    }ms (runs: [${runs}])`,
   );
-};
-
-const initialHTML = readFileSync("index.html", "utf-8");
-const runViteTest = async (name: string, htmlImport: string) => {
-  writeFileSync("index.html", initialHTML.replace("/esm/1.js", htmlImport));
-  await runTest(`Vite ${name}`, () => spawn("vite"), 5173);
 };
 
 const browser = await launch();
 
-await runTest("Bun limit", () => spawn("bun", ["bun-limit.ts"]), 3000);
-await runTest("Node limit", () => spawn("node", ["node-limit.js"]), 4000);
-await runViteTest("ESM", "/esm/1.js");
-await runViteTest("JS", "/js/1.js");
-await runViteTest("TS", "/ts/1.ts");
+if (process.argv.length === 4) {
+  const [width, depth] = process.argv.slice(2);
+  await runTest(Number(width), Number(depth));
+} else {
+  await runTest(50, 20);
+  await runTest(20, 50);
+  await runTest(100, 20);
+  await runTest(250, 20);
+  await runTest(400, 25);
+}
 
 await browser.close();
-writeFileSync("index.html", initialHTML);
 console.log("Finished, you can kill the process");

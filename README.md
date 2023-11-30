@@ -1,51 +1,19 @@
-# esm-dev-server-limit
+# Vite Dev Perf Test
 
-This project aims to give some numbers to the speed limit of ESM dev-servers. I often saw people saying that Vite speed is limited by the number of concurrent browser connections.
+Testing the unbundled dev server overhead with varying levels of module graph width / depth.
 
-## Setup
-
-1k modules, each one importing the next one until the last one that adds `Hello world` to the DOM. 4 cases:
-
-- Bun limit: Dead simple Bun server that serve the requested files. Uses absolute ESM imports (`import "src/esm/2.js"`)
-- Node limit: Same as Bun, running in Node
-- Vite ESM: Same files, running Vite dev server
-- Vite JS: JS files, but with relative extensionless imports (`import "./2"`)
-- Vite TS: TS files with relative extensionless imports
-
-## Results
-
-```
-Bun limit: 1238ms (runs: [1143,1238,1244,1223,1242])
-Node limit: 1378ms (runs: [1287,1427,1378,1399,1377])
-Vite ESM: 1871ms (runs: [1871,1873,1883,1848,1843])
-Vite JS: 1897ms (runs: [1882,1899,1891,1897,1918])
-Vite TS: 2235ms (runs: [2303,2245,2235,2231,2227])
+```sh
+bun install
+bun run test # run a list of default variations
+bun run test 10 10 # run against a 10x10 module graph
 ```
 
-## Conclusions
+## Results on M2 Pro Mac
 
-- In localhost, browser <-> dev-server round-trip is quite fast. For my machine with Chrome 108, it's close to 1ms per request. This is probably higher for files with a more realistic number of bytes, but this something that you will also need to pay with a bundled dev-server.
-- Extension-less imports seems less an issue than I expected. But I still think we should jump on it with TS 5.
-- The overhead of 1k calls to esbuild is also not that big and this something that can become invisible if running inside Bun with the builtin transpiler: https://twitter.com/jarredsumner/status/1617515988165218304
-
-**Overhaul I think that ESM dev-server can scale well to big apps, and that we should keep the direction of making most things simple with fast transformation without complex caching system.**
-
-## Faster restart
-
-For dev-server restart, we can use browser caching. This requires to shift away from the "lazy" dev-server. This is something I've played with here: https://github.com/ArnaudBarre/rds. In few points, the design is:
-
-- Transform everything first on the server from root to leafs
-- Rewrite imports from leafs to root and include the hash of imported module in the queryParams
-- On file change, transform and send the new module. Invalidate the imports transformation from the modules to root.
-
-## Run it yourself
-
-First, if you don't have [Bun](https://bun.sh/), install it:
-
-```bash
-curl -fsSL https://bun.sh/install | bash
 ```
-
-```bash
-bun install && bun codegen && bun test
+1000 TS modules (50x20) loaded in: 533ms (runs: [585,496,501,538,533])
+1000 TS modules (20x50) loaded in: 505ms (runs: [534,485,505,504,515])
+2000 TS modules (100x20) loaded in: 1055ms (runs: [1070,1055,1052,1038,1133])
+5000 TS modules (250x20) loaded in: 2527ms (runs: [2730,2527,2488,2456,2535])
+10000 TS modules (400x25) loaded in: 5123ms (runs: [5123,5101,5107,5343,5257])
 ```

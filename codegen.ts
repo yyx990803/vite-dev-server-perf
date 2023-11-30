@@ -1,24 +1,39 @@
 import { writeFileSync, mkdirSync, rmSync } from "fs";
 
-rmSync("src", { recursive: true, force: true });
-mkdirSync("./src");
+export function genCode(width = 30, depth = 30) {
+  rmSync("src", { recursive: true, force: true });
+  mkdirSync("./src");
 
-const generate = (dir: string, ext: string, nextImp: (i: number) => string) => {
-  mkdirSync(`./src/${dir}`);
-  for (let i = 1; i < 1_000; i++) {
-    writeFileSync(`src/${dir}/${i}.${ext}`, `import "${nextImp(i + 1)}"`);
+  function write(path: string, data: string) {
+    writeFileSync(path, `${data}\nwindow.count++`);
   }
+
+  const generate = (
+    dir: string,
+    ext: string,
+    nextImp: (i: number) => string,
+  ) => {
+    mkdirSync(`./src/${dir}`);
+    for (let i = 1; i < depth; i++) {
+      write(`src/${dir}/${i}.${ext}`, `import "${nextImp(i + 1)}"`);
+    }
+    write(`src/${dir}/${depth}.${ext}`, ``);
+  };
+
+  let rootImports = ``;
+  for (let i = 0; i < width; i++) {
+    generate(`dir${i}`, `ts`, (j) => `/src/dir${i}/${j}.ts`);
+    rootImports += `import './dir${i}/1.ts'\n`;
+  }
+
   writeFileSync(
-    `src/${dir}/1000.${ext}`,
+    `src/entry.js`,
     `
+${rootImports}
 const app = document.createElement("div");
 app.id = "app";
-app.textContent = "Hello world";
+app.textContent = window.count + ' TypeScript modules (import graph width:${width} x depth:${depth}) loaded in ' + (performance.now() - window.start).toFixed(2) + 'ms';
 document.body.appendChild(app);
 `,
   );
-};
-
-generate("esm", "js", (i) => `/src/esm/${i}.js`);
-generate("js", "js", (i) => `./${i}`);
-generate("ts", "ts", (i) => `./${i}`);
+}

@@ -4,15 +4,16 @@
   "type": "module",
   "scripts": {
     "postinstall": "node ./node_modules/puppeteer/install.js",
-    "codegen": "bun codegen.ts",
-    "test": "esbuild test.ts --outfile=test.js --log-level=error && node test.js"
+    "build": "bun codegen.ts",
+    "dev": "vite",
+    "test": "bun test.ts"
   },
   "prettier": {
     "trailingComma": "all"
   },
   "dependencies": {
     "puppeteer": "^19.6.2",
-    "vite": "^4.1.0-beta.1"
+    "vite": "^5.0.4"
   },
   "devDependencies": {
     "bun-types": "^0.4.0",

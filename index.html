@@ -7,6 +7,10 @@
     <title>Vite</title>
   </head>
   <body>
-    <script type="module" src="src/esm/1.js"></script>
+    <script>
+    window.count = 0
+    window.start = performance.now()
+    </script>
+    <script type="module" src="src/entry.js"></script>
   </body>
 </html>
