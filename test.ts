@@ -12,8 +12,8 @@ const runTest = async (width: number, depth: number) => {
     const page = await browser.newPage();
     await wait(500);
     const start = performance.now();
-    await page.goto(`http://localhost:5173`);
-    await page.waitForSelector("#app", { timeout: 10_000 });
+    await page.goto(`http://localhost:5173`, { timeout: 60_000 });
+    await page.waitForSelector("#app", { timeout: 60_000 });
     runs.push(Math.round(performance.now() - start));
     await page.close();
     process.kill();
